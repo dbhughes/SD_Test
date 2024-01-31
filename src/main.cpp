@@ -40,7 +40,6 @@
 
 #include "FS.h"
 #include "SD.h"
-//#include "SPI.h"
 #include "time.h"
 
 #include "MySd.h"
