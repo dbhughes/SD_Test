@@ -347,7 +347,7 @@ class MySd
         } 
         else 
         {
-            Serial.println("File does not exist.");
+            Serial.printf("File %s Does Not Exist !!!\n", path);
             file.close();
             return false;
         }
