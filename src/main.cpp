@@ -41,10 +41,17 @@
 #include "FS.h"
 #include "SD.h"
 #include "SPI.h"
+#include "time.h"
 
 #include "MySd.h"
 
-MySd mysd(5, "V");
+MySd mysd("V");
+
+
+char txtBuf[250];
+
+// Assign names to Pushbutton pins
+const int PushButton0 = 36;
 
 /*
 #define REASSIGN_PINS
@@ -55,10 +62,13 @@ int cs = 15;
 */
 
 
-void setup(){
+void setup()
+{
     Serial.begin(115200);
     while(!Serial) { delay (10); }
 
+    // Set the pin mode for the pushbutton
+    pinMode(PushButton0, INPUT_PULLUP);
 
     uint64_t cardSize = SD.cardSize() / (1024 * 1024);
     Serial.printf("SD Card Size: %lluMB\n", cardSize);
@@ -94,6 +104,13 @@ void setup(){
     Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
 }
 
-void loop(){
+void loop()
+{
+    if (digitalRead(PushButton0) == LOW )
+    { 
+        mysd.appendFile(SD, "/Logger.txt",  " DeDah\n");
+        mysd.readFile(SD, "/Logger.txt");
+        delay(500);
+    }
 
 }

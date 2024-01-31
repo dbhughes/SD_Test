@@ -88,13 +88,28 @@ class MySd
 
 
     // Constructor
-    MySd(int csPin, const char* hv) 
+    MySd(const char* hv) 
     {
-        //if(!SD.begin(cs)){ //Change to this function to manually change CS pin
-        if(!SD.begin())
+        if (hv[0] == 'h' || hv[0] == 'H')
         {
-            Serial.println("Card Mount Failed");
-            return;
+            int sck = 14;   int miso = 12;  int mosi = 13;  int cs = 15;
+            SPIClass spi = SPIClass(HSPI);
+            spi.begin(sck, miso, mosi, cs);
+            if (!SD.begin(cs, spi, 80000000)) 
+            {
+                Serial.println("Card Mount Failed");
+                return;
+            }
+        }
+        else
+        {
+            //if(!SD.begin(cs)){ //Change to this function to manually change CS pin
+            if(!SD.begin())
+            {
+                Serial.println("Card Mount Failed");
+                return;
+            }
+
         }
         uint8_t cardType = SD.cardType();
 
@@ -134,30 +149,36 @@ class MySd
         Serial.printf("Listing directory: %s\n", dirname);
 
         File root = fs.open(dirname);
-        if(!root){
-        Serial.println("Failed to open directory");
-        return;
+        if(!root)
+        {
+            Serial.println("Failed to open directory");
+            return;
         }
-        if(!root.isDirectory()){
-        Serial.println("Not a directory");
-        return;
+        if(!root.isDirectory())
+        {
+            Serial.println("Not a directory");
+            return;
         }
 
         File file = root.openNextFile();
-        while(file){
-        if(file.isDirectory()){
-            Serial.print("  DIR : ");
-            Serial.println(file.name());
-            if(levels){
-            listDir(fs, file.name(), levels -1);
+        while(file)
+        {
+            if(file.isDirectory())
+            {
+                Serial.print("  DIR : ");
+                Serial.println(file.name());
+                if(levels){
+                listDir(fs, file.name(), levels -1);
+                }
+            } 
+            else 
+            {
+                Serial.print("  FILE: ");
+                Serial.print(file.name());
+                Serial.print("  SIZE: ");
+                Serial.println(file.size());
             }
-        } else {
-            Serial.print("  FILE: ");
-            Serial.print(file.name());
-            Serial.print("  SIZE: ");
-            Serial.println(file.size());
-        }
-        file = root.openNextFile();
+            file = root.openNextFile();
         }
     }
 
@@ -186,10 +207,13 @@ class MySd
     void removeDir(fs::FS &fs, const char * path)
     {
         Serial.printf("Removing Dir: %s\n", path);
-        if(fs.rmdir(path)){
-        Serial.println("Dir removed");
-        } else {
-        Serial.println("rmdir failed");
+        if(fs.rmdir(path))
+        {
+            Serial.println("Dir removed");
+        } 
+        else 
+        {
+            Serial.println("rmdir failed");
         }
     }
 
@@ -204,14 +228,16 @@ class MySd
         Serial.printf("Reading file: %s\n", path);
 
         File file = fs.open(path);
-        if(!file){
-        Serial.println("Failed to open file for reading");
-        return;
+        if(!file)
+        {
+            Serial.println("Failed to open file for reading");
+            return;
         }
 
         Serial.print("Read from file: ");
-        while(file.available()){
-        Serial.write(file.read());
+        while(file.available())
+        {
+            Serial.write(file.read());
         }
         file.close();
     }
