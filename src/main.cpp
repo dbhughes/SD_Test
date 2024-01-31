@@ -45,7 +45,7 @@
 
 #include "MySd.h"
 
-MySd mysd("V");
+MySd mysd;
 
 
 char txtBuf[250];
@@ -58,9 +58,11 @@ void setup()
 {
     Serial.begin(115200);
     while(!Serial) { delay (10); }
-
+    Serial.print("\n\n");
     // Set the pin mode for the pushbutton
     pinMode(PushButton0, INPUT_PULLUP);
+
+    mysd.mountSd("V");
 
     uint64_t cardSize = SD.cardSize() / (1024 * 1024);
     Serial.printf("SD Card Size: %lluMB\n", cardSize);
@@ -96,7 +98,7 @@ void setup()
 
 
 
-    Serial.printf("Total space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
+    Serial.printf("Free space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
     Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
 }
 

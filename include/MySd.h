@@ -74,13 +74,6 @@ if (!SD.begin(CS,spi,80000000)) {
 */
 
 
-/*
-#define REASSIGN_PINS
-int sck = 14;
-int miso = 12;
-int mosi = 13;
-int cs = 15;
-*/
 
 class MySd
 {
@@ -88,8 +81,25 @@ class MySd
 
 
     // Constructor
-    MySd(const char* hv) 
+    MySd() 
     {
+    }
+    
+    // Destructor
+    ~MySd()  
+    {
+    }
+
+    //********************************************************************************
+    //* Name : mountSd
+    //* Desc : 
+    //* Parm : n/a
+    //* Retn : void
+    //********************************************************************************
+    void mountSd(const char* hv)
+    {
+        Serial.printf("Mounting SD Card using %sSPI\n", hv);
+        
         if (hv[0] == 'h' || hv[0] == 'H')
         {
             int sck = 14;   int miso = 12;  int mosi = 13;  int cs = 15;
@@ -109,8 +119,9 @@ class MySd
                 Serial.println("Card Mount Failed");
                 return;
             }
-
         }
+
+        // get the card type
         uint8_t cardType = SD.cardType();
 
         if(cardType == CARD_NONE)
@@ -130,13 +141,8 @@ class MySd
         } else {
             Serial.println("UNKNOWN");
         }
-    }
-    
-    // Destructor
-    ~MySd()  
-    {
-    }
 
+    }
    
     //********************************************************************************
     //* Name : listDir
