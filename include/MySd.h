@@ -336,6 +336,7 @@ class MySd
         if(file)
         {
             file.close();
+            Serial.printf("File %s exists.\n", path);
             return true;
         } 
         else 

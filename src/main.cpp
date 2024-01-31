@@ -72,7 +72,7 @@ void setup()
 
     uint64_t cardSize = SD.cardSize() / (1024 * 1024);
     Serial.printf("SD Card Size: %lluMB\n", cardSize);
-
+/*
     mysd.listDir(SD, "/", 0);
     mysd.createDir(SD, "/mydir");
     mysd.listDir(SD, "/", 0);
@@ -88,16 +88,16 @@ void setup()
 
     mysd.writeFile(SD, "/Derek.txt", "Hello Derek");
     mysd.writeFile(SD, "/BILLY.txt", "Hello BB");
+*/
 
     if (!mysd.fileExists(SD, "/Logger.txt"))
     {
         mysd.writeFile(SD, "/Logger.txt", "Hello Loggy\n");
+        mysd.appendFile(SD, "/Logger.txt",  " What\n");
+        mysd.appendFile(SD, "/Logger.txt",  " a\n");
+        mysd.appendFile(SD, "/Logger.txt",  " Great\n");
+        mysd.appendFile(SD, "/Logger.txt",  " World!\n");
     }
-    mysd.appendFile(SD, "/Logger.txt",  " What\n");
-    mysd.appendFile(SD, "/Logger.txt",  " a\n");
-    mysd.appendFile(SD, "/Logger.txt",  " Great\n");
-    mysd.appendFile(SD, "/Logger.txt",  " World!\n");
-    mysd.appendFile(SD, "/Logger.txt",  " DeDah\n");
     
     mysd.readFile(SD, "/Logger.txt");
 
