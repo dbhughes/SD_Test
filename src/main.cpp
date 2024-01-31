@@ -40,7 +40,7 @@
 
 #include "FS.h"
 #include "SD.h"
-#include "SPI.h"
+//#include "SPI.h"
 #include "time.h"
 
 #include "MySd.h"
@@ -52,14 +52,6 @@ char txtBuf[250];
 
 // Assign names to Pushbutton pins
 const int PushButton0 = 36;
-
-/*
-#define REASSIGN_PINS
-int sck = 14;
-int miso = 12;
-int mosi = 13;
-int cs = 15;
-*/
 
 
 void setup()
