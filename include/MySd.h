@@ -320,6 +320,32 @@ class MySd
         }
     }
 
+//********************************************************************************
+    //* Name : fileExists
+    //* Desc : Return true if the file exists
+    //* Parm : const char* file path
+    //* Retn : bool
+    //********************************************************************************
+    bool fileExists(fs::FS &fs, const char * path)
+    {
+        File file = fs.open(path);
+        static uint8_t buf[512];
+        size_t len = 0;
+        uint32_t start = millis();
+        uint32_t end = start;
+        if(file)
+        {
+            file.close();
+            return true;
+        } 
+        else 
+        {
+            Serial.println("File does not exist.");
+            file.close();
+            return false;
+        }
+    }
+
     //********************************************************************************
     //* Name : testFileIO
     //* Desc : 

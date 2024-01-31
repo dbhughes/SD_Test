@@ -88,7 +88,11 @@ void setup()
 
     mysd.writeFile(SD, "/Derek.txt", "Hello Derek");
     mysd.writeFile(SD, "/BILLY.txt", "Hello BB");
-    mysd.writeFile(SD, "/Logger.txt", "Hello Loggy\n");
+
+    if (!mysd.fileExists(SD, "/Logger.txt"))
+    {
+        mysd.writeFile(SD, "/Logger.txt", "Hello Loggy\n");
+    }
     mysd.appendFile(SD, "/Logger.txt",  " What\n");
     mysd.appendFile(SD, "/Logger.txt",  " a\n");
     mysd.appendFile(SD, "/Logger.txt",  " Great\n");
