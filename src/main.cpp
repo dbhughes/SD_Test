@@ -4,6 +4,9 @@
 #include "time.h"
 
 #include "MySd.h"
+#include "MyWeather.h"
+#include "MyNtp.h"
+
 
 MySd mysd;
 
@@ -12,7 +15,7 @@ char txtBuf[250];
 
 // Assign names to Pushbutton pins
 const int PushButton0 = 36;
-char* logFileName="WLog.txt";
+const char* logFileName="/WLog.txt";
 
 void setup()
 {
@@ -38,11 +41,15 @@ void setup()
     mysd.readFile(SD, "/foo.txt");
 */
 
+    if (mysd.fileExists(SD, logFileName))
+    {
+        mysd.deleteFile(SD, logFileName);
+    }
     
 
     if (!mysd.fileExists(SD, logFileName))
     {
-        mysd.writeFile(SD, logFileName, "Hello Loggy\n");
+        mysd.writeFile(SD, logFileName, "");
     }
     
     mysd.appendFile(SD, logFileName,  " World!\n");
