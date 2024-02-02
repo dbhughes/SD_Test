@@ -67,6 +67,20 @@ class MyNtp
 
   }
 
+  //********************************************************************************
+  //* Name : GetTimeFromRtc
+  //* Desc : get the time from the RTC into txtTime
+  //* Parm : n/a
+  //* Retn : void
+  //********************************************************************************
+  void GetTimeFromRtc() 
+  {
+    int x;
+    struct tm timeinfo;
+    // Get the timr from the RTC into a tm struct
+    getLocalTime(&timeinfo);
+    strftime(txtTime, 26, "%Y-%m-%d %H:%M:%S", &timeinfo);
+  }
 
   
 };

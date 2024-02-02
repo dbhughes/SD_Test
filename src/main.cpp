@@ -19,19 +19,54 @@ char txtBuf[250];
 
 // Assign names to Pushbutton pins
 const int PushButton0 = 36;
+const int Led0 = 2;
+
+
 const char* logFileName="/WLog.txt";
 
+//********************************************************************************
+//* Name : blinkLed
+//* Desc : Blink the onboard Led
+//* Parm : n/a
+//* Retn : void
+//********************************************************************************
+void blinkLed(int amt)
+{
+    int x;
+    for (x=0; x < amt; x++)
+    {
+        digitalWrite(Led0, HIGH);
+        delay(500);
+        digitalWrite(Led0, LOW);
+        delay(500);
+    }
+}
+
+//********************************************************************************
+//* Name : setup
+//* Desc : 
+//* Parm : n/a
+//* Retn : void
+//********************************************************************************
 void setup()
 {
     Serial.begin(115200);
     while(!Serial) { delay (10); }
     Serial.print("\n\n");
+    Serial.println("Dereks Weather logging system is now running.");       
+
+
     // Set the pin mode for the pushbutton
     pinMode(PushButton0, INPUT_PULLUP);
+    pinMode(Led0, OUTPUT);
+
+    // Turn led0 off
+    blinkLed(4);
 
     // Instantiate object from MyFi Class to connect to WiFi
     MyFi Wap;
-  // Use object method to connect to WAP
+
+    // Use object method to connect to WAP
     Wap.ScanWapsAndConnect();
 
     // Configure RTC settings
@@ -46,27 +81,11 @@ void setup()
     // Print ESP Local IP Address
     Serial.println(WiFi.localIP());
 
-
+    // Mount the SD card using VSPI
     mysd.mountSd("V");
 
     uint64_t cardSize = SD.cardSize() / (1024 * 1024);
     Serial.printf("SD Card Size: %lluMB\n", cardSize);
-/*
-    mysd.listDir(SD, "/", 0);
-    mysd.createDir(SD, "/mydir");
-    mysd.removeDir(SD, "/mydir");
-    mysd.writeFile(SD, "/hello.txt", "Hello ");
-    mysd.appendFile(SD, "/hello.txt", "World!\n");
-    mysd.readFile(SD, "/hello.txt");
-    mysd.deleteFile(SD, "/foo.txt");
-    mysd.renameFile(SD, "/hello.txt", "/foo.txt");
-    mysd.readFile(SD, "/foo.txt");
-*/
-
-    if (mysd.fileExists(SD, logFileName))
-    {
-        mysd.deleteFile(SD, logFileName);
-    }
     
 
     if (!mysd.fileExists(SD, logFileName))
@@ -74,26 +93,31 @@ void setup()
         mysd.writeFile(SD, logFileName, "");
     }
     
-    mysd.appendFile(SD, logFileName,  " World!\n");
 
     mysd.readFile(SD, logFileName);
-
-
-
 
     Serial.printf("Free space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
     Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
 }
 
+//********************************************************************************
+//* Name : loop
+//* Desc : 
+//* Parm : n/a
+//* Retn : void
+//********************************************************************************
 void loop()
 {
     char weatherBuf[250];
-    unsigned long delayMillis;
-    unsigned long currentMillis;
-    unsigned long MinutesInterval = 5 * 60 * 1000;  // 5 minutes
+    // Pushbutton delay time
+    unsigned long startMillis;
 
-    // Setup millis timeout for 5 minutes
-    delayMillis = millis() + (MinutesInterval);
+    // Weather Check Delay time
+    unsigned long WeatherDelayMillis;
+    unsigned long WeatherMinutesInterval = 5 * 60 * 1000;  // 5 minutes
+
+    // Setup millis weather timeout for 5 minutes
+    WeatherDelayMillis = millis() + (WeatherMinutesInterval);
 
     // Loop forever
     while(1)
@@ -101,23 +125,67 @@ void loop()
         // Check for pushbutton
         if (digitalRead(PushButton0) == LOW )
         { 
-            delay(500);
+            // Turn led0 on
+            digitalWrite(Led0, HIGH);    
+            //
+            Serial.println("You have pressed the file reset button.");       
+            // Wait a debounce bit
+            delay(100);
+            // Loop until button is released
+            while(digitalRead(PushButton0) == LOW );
+            // Wait a debounce bit
+            delay(100);
+            // Loop for 2 seconds waiting for button to be pressed again
+            Serial.printf("To reset the %s log file, You have 3 seconds to push the button again\n", logFileName);
+            startMillis = millis();
+            while( millis() < startMillis + 3000)
+            {
+                // If button pressed again then clear file and blink 3 times
+                if (digitalRead(PushButton0) == LOW )
+                { 
+                    // Erase file if it exists
+                    if (mysd.fileExists(SD, logFileName))
+                    {
+                        // Make a new clean file on the SD
+                        mysd.deleteFile(SD, logFileName);
+                        mysd.writeFile(SD, logFileName, "");
+                        Serial.printf("Deleted Old and created new %s file\n", logFileName);
+                    }
+
+                    // Blink Led 3 times
+                    blinkLed(3);
+
+                    // Break out of 2 second loop
+                    break;
+                }
+
+                // Turn led0 off
+                digitalWrite(Led0, LOW);                
+            }
         }
 
         // Check the weather every 5 minutes
-        if (millis() > delayMillis)
+        if (millis() > WeatherDelayMillis)
         {
-        // Reset delay amount
-        delayMillis = millis() + MinutesInterval;
-        // Get the weather data
-        myw.getWeatherData();
-        // make the weather string
-        sprintf(weatherBuf, "%18S %15s  %5s Deg  %5s Mph  %5s Deg", myntp.txtTime, myw.cWeather, myw.cHot, myw.cWindSpd, myw.cWindDir);
-        // Append the weather to the file
-        mysd.appendFile(SD, logFileName, weatherBuf);
+            // Reset delay amount
+            WeatherDelayMillis = millis() + WeatherMinutesInterval;
+
+            // Get the network time
+            myntp.SetRtcFromNtp();
+
+            // Get the RTC Time into myntp.txtTime
+            myntp.GetTimeFromRtc();
+
+            // Get the weather data
+            myw.getWeatherData();
+            
+            // make the weather string
+            sprintf(weatherBuf, "%20S, %20s,  %6s Deg,  %5s Mph,  %5s\r\n", myntp.txtTime, myw.cWeather, myw.cHot, myw.cWindSpd, myw.cWindDir);
+
+            // Append the weather to the file
+            mysd.appendFile(SD, logFileName, weatherBuf);
         }
+
   }
-
-
 
 }
