@@ -1,114 +1,190 @@
-/*
- * pin 1 - not used          |  Micro SD card     |
- * pin 2 - CS (SS)           |                   /
- * pin 3 - DI (MOSI)         |                  |__
- * pin 4 - VDD (3.3V)        |                    |
- * pin 5 - SCK (SCLK)        | 8 7 6 5 4 3 2 1   /
- * pin 6 - VSS (GND)         | ▄ ▄ ▄ ▄ ▄ ▄ ▄ ▄  /
- * pin 7 - DO (MISO)         | ▀ ▀ █ ▀ █ ▀ ▀ ▀ |
- * pin 8 - not used          |_________________|
- *                             ║ ║ ║ ║ ║ ║ ║ ║
- *                     ╔═══════╝ ║ ║ ║ ║ ║ ║ ╚═════════╗
- *                     ║         ║ ║ ║ ║ ║ ╚══════╗    ║
- *                     ║   ╔═════╝ ║ ║ ║ ╚═════╗  ║    ║
- * Connections for     ║   ║   ╔═══╩═║═║═══╗   ║  ║    ║
- * full-sized          ║   ║   ║   ╔═╝ ║   ║   ║  ║    ║
- * SD card             ║   ║   ║   ║   ║   ║   ║  ║    ║
- * Pin name         |  -  DO  VSS SCK VDD VSS DI CS    -  |
- * SD pin number    |  8   7   6   5   4   3   2   1   9 /
- *                  |                                  █/
- *                  |__▍___▊___█___█___█___█___█___█___/
- *
- * Note:  The SPI pins can be manually configured by using `SPI.begin(sck, miso, mosi, cs).`
- *        Alternatively, you can change the CS pin and use the other default settings by using `SD.begin(cs)`.
- *
- * +--------------+---------+-------+----------+----------+----------+
- * | SPI Pin Name | ESP8266 | ESP32 | ESP32-S2 | ESP32-C3 | ESP32-S3 |
- * +==============+=========+=======+==========+==========+==========+
- * | CS (SS)      | GPIO15  | GPIO5 | GPIO5    | GPIO13   | GPIO13   |
- * +--------------+---------+-------+----------+----------+----------+
- * | DI (MOSI)    | GPIO13  | GPIO23| GPIO24   | GPIO14   | GPIO14   |
- * +--------------+---------+-------+----------+----------+----------+
- * | DO (MISO)    | GPIO12  | GPIO19| GPIO25   | GPIO15   | GPIO15   |
- * +--------------+---------+-------+----------+----------+----------+
- * | SCK (SCLK)   | GPIO14  | GPIO18| GPIO19   | GPIO16   | GPIO16   |
- * +--------------+---------+-------+----------+----------+----------+
- *
- * For more info see file README.md in this library or on URL:
- * https://github.com/espressif/arduino-esp32/tree/master/libraries/SD
- */
 
 #include "FS.h"
 #include "SD.h"
 #include "time.h"
 
+#include "MyFi.h"
 #include "MySd.h"
+#include "MyNtp.h"
+#include "MyWeather.h"
+
 
 MySd mysd;
+MyWeather myw;
+MyNtp myntp;
+
 
 char txtBuf[250];
 
 // Assign names to Pushbutton pins
 const int PushButton0 = 36;
+const int Led0 = 2;
 
 
+const char* logFileName="/WLog.txt";
+
+//********************************************************************************
+//* Name : blinkLed
+//* Desc : Blink the onboard Led
+//* Parm : n/a
+//* Retn : void
+//********************************************************************************
+void blinkLed(int amt)
+{
+    int x;
+    for (x=0; x < amt; x++)
+    {
+        digitalWrite(Led0, HIGH);
+        delay(500);
+        digitalWrite(Led0, LOW);
+        delay(500);
+    }
+}
+
+//********************************************************************************
+//* Name : setup
+//* Desc : 
+//* Parm : n/a
+//* Retn : void
+//********************************************************************************
 void setup()
 {
     Serial.begin(115200);
     while(!Serial) { delay (10); }
     Serial.print("\n\n");
+    Serial.println("Dereks Weather logging system is now running.");       
+
+
     // Set the pin mode for the pushbutton
     pinMode(PushButton0, INPUT_PULLUP);
+    pinMode(Led0, OUTPUT);
 
+    // Turn led0 off
+    blinkLed(4);
+
+    // Instantiate object from MyFi Class to connect to WiFi
+    MyFi Wap;
+
+    // Use object method to connect to WAP
+    Wap.ScanWapsAndConnect();
+
+    // Configure RTC settings
+    configTime(myntp.gmtOffset_sec, myntp.daylightOffset_sec, myntp.ntpServer);
+    
+    // Set the ESP32 RTC from specified NTP server
+    myntp.SetRtcFromNtp();
+
+    // Get the weather data
+    myw.getWeatherData();
+
+    // Print ESP Local IP Address
+    Serial.println(WiFi.localIP());
+
+    // Mount the SD card using VSPI
     mysd.mountSd("V");
 
     uint64_t cardSize = SD.cardSize() / (1024 * 1024);
     Serial.printf("SD Card Size: %lluMB\n", cardSize);
-/*
-    mysd.listDir(SD, "/", 0);
-    mysd.createDir(SD, "/mydir");
-    mysd.listDir(SD, "/", 0);
-    mysd.removeDir(SD, "/mydir");
-    mysd.listDir(SD, "/", 2);
-    mysd.writeFile(SD, "/hello.txt", "Hello ");
-    mysd.appendFile(SD, "/hello.txt", "World!\n");
-    mysd.readFile(SD, "/hello.txt");
-    mysd.deleteFile(SD, "/foo.txt");
-    mysd.renameFile(SD, "/hello.txt", "/foo.txt");
-    mysd.readFile(SD, "/foo.txt");
-    mysd.testFileIO(SD, "/test.txt");
+    
 
-    mysd.writeFile(SD, "/Derek.txt", "Hello Derek");
-    mysd.writeFile(SD, "/BILLY.txt", "Hello BB");
-*/
-
-    mysd.fileExists(SD, "/Frogger.txt");
-
-    if (!mysd.fileExists(SD, "/Logger.txt"))
+    if (!mysd.fileExists(SD, logFileName))
     {
-        mysd.writeFile(SD, "/Logger.txt", "Hello Loggy\n");
-        mysd.appendFile(SD, "/Logger.txt",  " What\n");
-        mysd.appendFile(SD, "/Logger.txt",  " a\n");
-        mysd.appendFile(SD, "/Logger.txt",  " Great\n");
-        mysd.appendFile(SD, "/Logger.txt",  " World!\n");
+        mysd.writeFile(SD, logFileName, "");
     }
     
-    mysd.readFile(SD, "/Logger.txt");
 
-
-
+    mysd.readFile(SD, logFileName);
 
     Serial.printf("Free space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
     Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
 }
 
+//********************************************************************************
+//* Name : loop
+//* Desc : 
+//* Parm : n/a
+//* Retn : void
+//********************************************************************************
 void loop()
 {
-    if (digitalRead(PushButton0) == LOW )
-    { 
-        mysd.appendFile(SD, "/Logger.txt",  " DeDah\n");
-        mysd.readFile(SD, "/Logger.txt");
-        delay(500);
-    }
+    char weatherBuf[250];
+    // Pushbutton delay time
+    unsigned long startMillis;
+
+    // Weather Check Delay time
+    unsigned long WeatherDelayMillis;
+    unsigned long WeatherMinutesInterval = 5 * 60 * 1000;  // 5 minutes
+
+    // Setup millis weather timeout for 5 minutes
+    WeatherDelayMillis = millis() + (WeatherMinutesInterval);
+
+    // Loop forever
+    while(1)
+    {
+        // Check for pushbutton
+        if (digitalRead(PushButton0) == LOW )
+        { 
+            // Turn led0 on
+            digitalWrite(Led0, HIGH);    
+            //
+            Serial.println("You have pressed the file reset button.");       
+            // Wait a debounce bit
+            delay(100);
+            // Loop until button is released
+            while(digitalRead(PushButton0) == LOW );
+            // Wait a debounce bit
+            delay(100);
+            // Loop for 2 seconds waiting for button to be pressed again
+            Serial.printf("To reset the %s log file, You have 3 seconds to push the button again\n", logFileName);
+            startMillis = millis();
+            while( millis() < startMillis + 3000)
+            {
+                // If button pressed again then clear file and blink 3 times
+                if (digitalRead(PushButton0) == LOW )
+                { 
+                    // Erase file if it exists
+                    if (mysd.fileExists(SD, logFileName))
+                    {
+                        // Make a new clean file on the SD
+                        mysd.deleteFile(SD, logFileName);
+                        mysd.writeFile(SD, logFileName, "");
+                        Serial.printf("Deleted Old and created new %s file\n", logFileName);
+                    }
+
+                    // Blink Led 3 times
+                    blinkLed(3);
+
+                    // Break out of 2 second loop
+                    break;
+                }
+
+                // Turn led0 off
+                digitalWrite(Led0, LOW);                
+            }
+        }
+
+        // Check the weather every 5 minutes
+        if (millis() > WeatherDelayMillis)
+        {
+            // Reset delay amount
+            WeatherDelayMillis = millis() + WeatherMinutesInterval;
+
+            // Get the network time
+            myntp.SetRtcFromNtp();
+
+            // Get the RTC Time into myntp.txtTime
+            myntp.GetTimeFromRtc();
+
+            // Get the weather data
+            myw.getWeatherData();
+            
+            // make the weather string
+            sprintf(weatherBuf, "%20S, %20s,  %6s Deg,  %5s Mph,  %5s\r\n", myntp.txtTime, myw.cWeather, myw.cHot, myw.cWindSpd, myw.cWindDir);
+
+            // Append the weather to the file
+            mysd.appendFile(SD, logFileName, weatherBuf);
+        }
+
+  }
 
 }
