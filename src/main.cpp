@@ -46,7 +46,6 @@
 
 MySd mysd;
 
-
 char txtBuf[250];
 
 // Assign names to Pushbutton pins
